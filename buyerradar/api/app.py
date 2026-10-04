@@ -1,6 +1,8 @@
+import hmac
+import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -51,6 +53,26 @@ def create_app():
     app = FastAPI(title="BuyerRadar")
     cfg = load_config()
 
+    if not cfg.auth_token:
+        logging.getLogger("buyerradar").warning(
+            "SELLER_API_TOKEN is not set; API writes are unauthenticated"
+        )
+
+    def _request_token(authorization: str | None, x_api_token: str | None):
+        if authorization and authorization.lower().startswith("bearer "):
+            return authorization[7:].strip()
+        return (x_api_token or "").strip()
+
+    def require_write_auth(
+        authorization: str | None = Header(default=None),
+        x_api_token: str | None = Header(default=None),
+    ):
+        if not cfg.auth_token:
+            return
+        got = _request_token(authorization, x_api_token)
+        if not got or not hmac.compare_digest(got, cfg.auth_token):
+            raise HTTPException(status_code=401, detail="unauthorized")
+
     @app.get("/api/status")
     def status():
         conn = connect(cfg.db_path)
@@ -69,13 +91,13 @@ def create_app():
         conn = connect(cfg.db_path)
         return list_leads(conn, status=status)
 
-    @app.post("/api/leads/{lead_id}/approve")
+    @app.post("/api/leads/{lead_id}/approve", dependencies=[Depends(require_write_auth)])
     def approve(lead_id: int):
         conn = connect(cfg.db_path)
         set_lead_status(conn, lead_id, "approved")
         return {"ok": True}
 
-    @app.post("/api/leads/{lead_id}/dismiss")
+    @app.post("/api/leads/{lead_id}/dismiss", dependencies=[Depends(require_write_auth)])
     def dismiss(lead_id: int):
         conn = connect(cfg.db_path)
         set_lead_status(conn, lead_id, "dismissed")
@@ -91,13 +113,13 @@ def create_app():
         conn = connect(cfg.db_path)
         return sellers_payload(conn)
 
-    @app.post("/api/sellers", status_code=201)
+    @app.post("/api/sellers", status_code=201, dependencies=[Depends(require_write_auth)])
     def create_seller(body: SellerIn):
         conn = connect(cfg.db_path)
         seller_id = save_seller(conn, Seller(body.name, body.city, body.whatsapp))
         return {"id": seller_id}
 
-    @app.post("/api/sellers/{seller_id}/products", status_code=201)
+    @app.post("/api/sellers/{seller_id}/products", status_code=201, dependencies=[Depends(require_write_auth)])
     def create_product(seller_id: int, body: ProductIn):
         conn = connect(cfg.db_path)
         row = conn.execute("SELECT id FROM sellers WHERE id=?", (seller_id,)).fetchone()
@@ -106,7 +128,7 @@ def create_app():
         product_id = add_product(conn, seller_id, Product(body.name, body.price, body.tags))
         return {"id": product_id}
 
-    @app.post("/api/scan")
+    @app.post("/api/scan", dependencies=[Depends(require_write_auth)])
     def scan(source: str = "sample", query: str = "sneakers accra"):
         conn = connect(cfg.db_path)
         if source == "bluesky":

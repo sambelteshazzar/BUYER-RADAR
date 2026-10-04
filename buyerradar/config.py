@@ -1,3 +1,4 @@
+import os
 import tomllib
 from pathlib import Path
 
@@ -11,8 +12,9 @@ class Config:
         self.bluesky_identifier = bluesky.get("identifier", "")
         self.bluesky_password = bluesky.get("app_password", "")
         self.bluesky_enabled = bool(self.bluesky_identifier and self.bluesky_password)
-        self.db_path = data.get("db", {}).get("path", "data/buyerradar.db")
+        self.db_path = os.environ.get("BUYERADAR_DB") or data.get("db", {}).get("path", "data/buyerradar.db")
         self.query = data.get("scan", {}).get("query", "")
+        self.auth_token = os.environ.get("SELLER_API_TOKEN", "") or data.get("auth", {}).get("token", "")
 
 
 def load_config(path=DEFAULT_CONFIG_PATH):
