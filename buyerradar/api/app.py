@@ -2,9 +2,10 @@ import hmac
 import logging
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Literal
 
 from ..config import load_config
 from ..db import (
@@ -23,15 +24,15 @@ from ..sources import BlueskySource, SampleSource
 
 
 class SellerIn(BaseModel):
-    name: str
-    city: str
-    whatsapp: str = ""
+    name: str = Field(min_length=1, max_length=80)
+    city: str = Field(min_length=1, max_length=60)
+    whatsapp: str = Field(default="", max_length=30)
 
 
 class ProductIn(BaseModel):
-    name: str
-    price: str
-    tags: list[str] = []
+    name: str = Field(min_length=1, max_length=100)
+    price: str = Field(min_length=1, max_length=30)
+    tags: list[str] = Field(default=[], max_length=20)
 
 
 def sellers_payload(conn):
@@ -125,12 +126,15 @@ def create_app():
         row = conn.execute("SELECT id FROM sellers WHERE id=?", (seller_id,)).fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail="seller not found")
-        product_id = add_product(conn, seller_id, Product(body.name, body.price, body.tags))
+        tags = [t.strip().lower()[:30] for t in body.tags]
+        tags = [t for t in tags if t][:20]
+        product_id = add_product(conn, seller_id, Product(body.name, body.price, tags))
         return {"id": product_id}
 
     @app.post("/api/scan", dependencies=[Depends(require_write_auth)])
-    def scan(source: str = "sample", query: str = "sneakers accra"):
+    def scan(source: Literal["sample", "bluesky"] = "sample", query: str = Query(default="sneakers accra", max_length=200)):
         conn = connect(cfg.db_path)
+        query = query.strip() or "sneakers accra"
         if source == "bluesky":
             if not cfg.bluesky_enabled:
                 raise HTTPException(status_code=400, detail="bluesky is not configured")
