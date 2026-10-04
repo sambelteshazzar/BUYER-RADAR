@@ -1,11 +1,50 @@
+import re
 from datetime import datetime, timezone
 
 MIN_CONFIDENCE = 0.5
 
+SYNONYMS = {
+    "kicks": "sneakers",
+    "sneaks": "sneakers",
+    "sneak": "sneakers",
+    "af1": "air force",
+    "jordans": "jordan",
+}
+
+NEGATIVE_TAGS = ["cleaning", "cleaner", "repair", "wash", "laundry"]
+SPECIFIC_TOKENS = ["nike", "jordan", "adidas", "air force", "samba", "campus"]
+
+def normalize_text(text):
+    t = text.lower()
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    for short, full in SYNONYMS.items():
+        t = re.sub(r"\b" + short + r"\b", full, t)
+    return t
+
 
 def match_products(text, seller):
-    t = text.lower()
-    return [p for p in seller.inventory if any(tag in t for tag in p.tags)]
+    t = normalize_text(text)
+    tokens = set(t.split())
+    phrases = t
+    hits = []
+    for p in seller.inventory:
+        matched = False
+        for tag in p.tags:
+            norm_tag = normalize_text(tag)
+            if " " in norm_tag:
+                if norm_tag in phrases:
+                    matched = True
+                    break
+            elif norm_tag in tokens or norm_tag in phrases:
+                matched = True
+                break
+        if matched:
+            hits.append(p)
+    if any(v in tokens for v in NEGATIVE_TAGS):
+        if not any(s in phrases for s in SPECIFIC_TOKENS):
+            return []
+    return hits
 
 
 def location_score(post_city, seller_city):

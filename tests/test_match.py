@@ -48,3 +48,19 @@ def test_stale_post_scores_lower():
     fresh = SocialPost("x", "1", "@a", "need Nike sneakers", "Accra", NOW - timedelta(minutes=30))
     stale = SocialPost("x", "2", "@b", "need Nike sneakers", "Accra", NOW - timedelta(days=2))
     assert freshness_score(fresh.posted_at, NOW) > freshness_score(stale.posted_at, NOW)
+
+
+def test_match_kicks_and_af1_synonyms():
+    from buyerradar.match import match_products
+    post_kicks = "My Air Force 1s are done, I need new kicks for work"
+    hits = match_products(post_kicks, SELLER)
+    assert len(hits) >= 1
+
+    post_af1 = "Where can I get AF1 in Accra?"
+    hits_af1 = match_products(post_af1, SELLER)
+    assert any(p.name == "Nike Air Force 1" for p in hits_af1)
+
+def test_match_rejects_cleaning_service():
+    from buyerradar.match import match_products
+    hits = match_products("Recommend a good sneaker cleaning service in Accra please", SELLER)
+    assert hits == []
