@@ -80,6 +80,14 @@ data/              SQLite database (gitignored)
 | POST | /api/sellers/{id}/products | add a product |
 | POST | /api/scan | run one scan pass (sample or bluesky) |
 
+## Security
+
+Set `SELLER_API_TOKEN` in the environment or add a token under `[auth]` in
+`config.toml`, then restart the server. Open the dashboard Sources view and
+enter the token once to save it in this browser. The dashboard sends it as
+`X-API-Token` on write requests. GET endpoints stay open. Scans are limited
+to 10 per minute per IP.
+
 ## Roadmap
 
 1. Core loop. Done: rules classifier, sample source, SQLite, console notifier.
