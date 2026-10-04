@@ -116,6 +116,7 @@ def save_post(conn, post, verdict="", note=""):
         ),
     )
     if cur.rowcount == 0:
+        conn.commit()
         return None
     conn.commit()
     return cur.lastrowid

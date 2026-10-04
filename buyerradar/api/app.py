@@ -1,8 +1,11 @@
 import hmac
 import logging
+import time
+from collections import defaultdict
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Literal
@@ -33,6 +36,21 @@ class ProductIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     price: str = Field(min_length=1, max_length=30)
     tags: list[str] = Field(default=[], max_length=20)
+
+
+# NOTE: in-memory per-process store; use a shared store (e.g. redis) with more workers.
+_hits: dict[tuple[str, str], list[float]] = defaultdict(list)
+
+
+def _allow(key, limit, window=60.0):
+    now = time.monotonic()
+    slot = _hits[key]
+    while slot and now - slot[0] > window:
+        slot.pop(0)
+    if len(slot) >= limit:
+        return False, max(0, int(slot[0] + window - now))
+    slot.append(now)
+    return True, 0
 
 
 def sellers_payload(conn):
@@ -73,6 +91,21 @@ def create_app():
         got = _request_token(authorization, x_api_token)
         if not got or not hmac.compare_digest(got, cfg.auth_token):
             raise HTTPException(status_code=401, detail="unauthorized")
+
+    @app.middleware("http")
+    async def security_middleware(request: Request, call_next):
+        if request.method == "POST":
+            scope = "scan" if request.url.path == "/api/scan" else "write"
+            limit = 10 if scope == "scan" else 60
+            ip = request.client.host if request.client else "unknown"
+            ok, retry = _allow((scope, ip), limit)
+            if not ok:
+                return JSONResponse(status_code=429, content={"detail": "rate limited"}, headers={"Retry-After": str(retry or 60)})
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
 
     @app.get("/api/status")
     def status():

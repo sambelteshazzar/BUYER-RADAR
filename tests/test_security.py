@@ -27,3 +27,17 @@ def test_rejects_oversize_and_bad_source(monkeypatch, tmp_path):
     assert res.status_code == 422
     res2 = client.post("/api/scan?source=nope&query=hi")
     assert res2.status_code in (400, 422)
+
+def test_scan_rate_limited_and_headers(monkeypatch, tmp_path):
+    monkeypatch.delenv("SELLER_API_TOKEN", raising=False)
+    monkeypatch.setenv("BUYERADAR_DB", str(tmp_path / "sec4.db"))
+    from buyerradar.api.app import create_app
+    client = TestClient(create_app())
+    last = None
+    for _ in range(12):
+        last = client.post("/api/scan?source=sample&query=hi")
+    assert last.status_code == 429
+    assert "Retry-After" in last.headers
+    res = client.get("/api/status")
+    assert res.headers.get("X-Content-Type-Options") == "nosniff"
+    assert res.headers.get("X-Frame-Options") == "DENY"
