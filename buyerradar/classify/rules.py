@@ -21,7 +21,7 @@ SELLING_PATTERNS = [
 ]
 
 
-def classify_intent(text):
+def classify_intent(text, llm_fallback=None):
     t = text.lower()
     if any(re.search(p, t) for p in SELLING_PATTERNS):
         return "selling", "seller post"
@@ -29,4 +29,12 @@ def classify_intent(text):
         m = re.search(p, t)
         if m:
             return "buying", m.group(0)
+    if llm_fallback is not None:
+        try:
+            capped = text[:2000]
+            kind, phrase = llm_fallback(capped)
+            if kind in ("buying", "selling", "none"):
+                return kind, phrase
+        except Exception:
+            pass
     return "none", None
