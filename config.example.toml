@@ -1,0 +1,9 @@
+[db]
+path = "data/buyerradar.db"
+
+[bluesky]
+identifier = "your-handle.bsky.social"
+app_password = "xxxx-xxxx-xxxx-xxxx"
+
+[scan]
+query = ""

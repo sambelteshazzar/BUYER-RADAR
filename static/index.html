@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="BuyerRadar seller dashboard">
+<title>BuyerRadar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#f5f5f5; --canvas-soft:#fafafa; --card:#ffffff;
+  --ink:#0c0a09; --text:#292524; --mut:#777169; --dim:#a8a29e;
+  --line:#e7e5e4; --line-strong:#d6d3d1;
+  --coral:#f5714f; --coral-dark:#e4542e; --coral-soft:#fdeee9; --coral-line:#f7cfc2;
+  --green:#15803d; --green-soft:#e9f7ee; --green-line:#cdeeda;
+  --amber:#92600a; --amber-soft:#fdf1e3; --amber-line:#f3dfc0;
+  --cream:#efe9dd;
+  --sh-sm:0 1px 2px rgba(12,10,9,.08);
+  --sh-md:0 12px 32px -8px rgba(12,10,9,.14);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit;font-size:14px}
+:focus-visible{outline:2px solid var(--coral);outline-offset:2px}
+body{
+  font-family:'Inter','Helvetica Neue',Arial,sans-serif;
+  background:var(--canvas);color:var(--text);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+.side{
+  background:var(--card);border-right:1px solid var(--line);
+  padding:20px 14px;display:flex;flex-direction:column;gap:26px;
+  position:sticky;top:0;height:100vh;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--ink);padding:2px 8px}
+.mark{width:26px;height:26px;border-radius:7px;background:var(--coral);display:flex;align-items:center;justify-content:center}
+.mark svg{width:14px;height:14px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+  font-size:14px;font-weight:500;color:var(--mut);text-align:left;transition:background .12s,color .12s;
+}
+.nav button:hover{background:var(--canvas-soft);color:var(--ink)}
+.nav button.on{background:var(--coral-soft);color:var(--coral-dark)}
+.nav .count{
+  margin-left:auto;background:var(--coral);color:#fff;font-size:11px;font-weight:700;
+  border-radius:999px;padding:1px 7px;min-width:18px;text-align:center;
+}
+.nav .count.zero{background:var(--line);color:var(--mut)}
+.side-h{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;margin:0 10px 10px}
+.src-row{display:flex;align-items:center;gap:10px;padding:6px 10px;font-size:13px;color:var(--mut)}
+.src-row .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.src-row .dot.off{background:var(--line-strong)}
+.src-row .st{margin-left:auto;font-size:12px;color:var(--dim)}
+.side-user{margin-top:auto;border:1px solid var(--line);border-radius:10px;padding:11px;display:flex;align-items:center;gap:10px;background:var(--canvas-soft)}
+.side-user .ava{width:30px;height:30px;border-radius:50%;background:var(--coral);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.side-user strong{display:block;font-size:12.5px;color:var(--ink);line-height:1.3}
+.side-user small{font-size:11px;color:var(--dim)}
+
+.main{padding:26px 28px 40px;display:flex;flex-direction:column;gap:18px;max-width:1160px;width:100%}
+.topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar h1{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.updated{font-size:12.5px;color:var(--dim)}
+.top-controls{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.auto{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--mut)}
+.auto input{width:15px;height:15px;accent-color:var(--coral)}
+select,input[type=text]{
+  background:var(--card);border:1px solid var(--line-strong);border-radius:8px;
+  padding:8px 10px;color:var(--text);
+}
+select:disabled{color:var(--dim)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:999px;padding:9px 18px;font-size:13.5px;font-weight:600;transition:background .12s;
+}
+.btn.primary{background:var(--coral);color:#fff}
+.btn.primary:hover{background:var(--coral-dark)}
+.btn.primary:disabled{background:var(--line-strong);color:#fff;cursor:not-allowed}
+.btn.ghost{border:1px solid var(--line-strong);background:var(--card);color:var(--text)}
+.btn.ghost:hover{border-color:var(--ink)}
+
+.banner{display:none;padding:12px 16px;border-radius:10px;font-size:13.5px;align-items:center;gap:12px}
+.banner.show{display:flex}
+.banner.error{background:var(--coral-soft);border:1px solid var(--coral-line);color:var(--coral-dark)}
+.banner.ok{background:var(--green-soft);border:1px solid var(--green-line);color:var(--green)}
+
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:10px 16px;box-shadow:var(--sh-sm);
+}
+.stat b{display:block;font-size:19px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{font-size:11.5px;color:var(--dim);font-weight:500}
+
+.panels{display:grid;grid-template-columns:1.25fr .95fr;gap:16px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-sm)}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--line)}
+.panel-head h2{font-size:15px;font-weight:600;color:var(--ink)}
+.panel-head p{font-size:12.5px;color:var(--dim);margin-top:2px}
+.panel-body{padding:12px;display:flex;flex-direction:column;gap:10px;max-height:640px;overflow-y:auto}
+.panel-body::-webkit-scrollbar{width:8px}
+.panel-body::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px}
+
+.lead-card{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--canvas-soft)}
+.lead-card.dim{opacity:.55}
+.lead-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.lead-head strong{display:block;font-size:14px;color:var(--ink)}
+.meta{font-size:12px;color:var(--dim)}
+.badge{font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap;flex-shrink:0}
+.badge.hot{background:var(--coral-soft);color:var(--coral-dark);border:1px solid var(--coral-line)}
+.badge.warm{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line)}
+.conf{height:5px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:10px}
+.conf i{display:block;height:100%;background:var(--coral);border-radius:99px}
+.quote{
+  font-size:13px;color:var(--mut);line-height:1.55;border-left:2px solid var(--line-strong);
+  padding-left:10px;margin-bottom:10px;
+}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{font-size:11.5px;font-weight:600;color:var(--coral-dark);background:var(--coral-soft);border:1px solid var(--coral-line);border-radius:999px;padding:3px 9px}
+.draft{background:var(--cream);border:1px solid rgba(12,10,9,.07);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.draft span{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mut);text-transform:uppercase;margin-bottom:5px}
+.draft p{font-size:12.5px;line-height:1.55;color:var(--text)}
+.draft small{display:block;font-size:11px;color:var(--dim);margin-top:7px}
+.actions{display:flex;gap:8px;align-items:center}
+.actions .btn{padding:8px 16px;font-size:12.5px}
+.tag{font-size:12px;font-weight:600;border-radius:999px;padding:4px 12px}
+.tag.approved{background:var(--green-soft);color:var(--green);border:1px solid var(--green-line)}
+.tag.dismissed{background:var(--canvas);color:var(--dim);border:1px solid var(--line)}
+
+.post-card{border:1px solid var(--line);border-radius:10px;padding:12px 13px;background:var(--canvas-soft)}
+.post-card.dim{opacity:.55}
+.post-head{margin-bottom:6px}
+.post-head strong{font-size:13px;color:var(--ink)}
+.post-text{font-size:12.5px;line-height:1.5;color:var(--text);margin-bottom:9px}
+.verdict{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge.coral{background:var(--coral-soft);color:var(--coral-dark);border:1px solid var(--coral-line)}
+.badge.amber{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line)}
+.badge.gray{background:var(--canvas);color:var(--dim);border:1px solid var(--line)}
+.note{font-size:11.5px;color:var(--dim)}
+.note.good{color:var(--green);font-weight:600}
+
+.empty{
+  border:1px dashed var(--line-strong);border-radius:10px;padding:26px 18px;
+  text-align:center;color:var(--mut);font-size:13.5px;line-height:1.6;
+}
+.loading{padding:26px;text-align:center;color:var(--dim);font-size:13.5px}
+
+.form{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--sh-sm);max-width:480px}
+.form h2{font-size:15px;color:var(--ink);margin-bottom:14px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--mut);margin-bottom:5px}
+.field input{width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--text)}
+.hint{font-size:12px;color:var(--dim);margin-top:10px;line-height:1.6}
+
+.product-row{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:10px;background:var(--canvas-soft);flex-wrap:wrap;
+}
+.product-row strong{font-size:13.5px;color:var(--ink)}
+.product-row .price{font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums}
+.tagchip{font-size:11px;color:var(--mut);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+
+.src-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--sh-sm);max-width:620px}
+.src-card+.src-card{margin-top:12px}
+.src-card h3{font-size:14.5px;color:var(--ink);display:flex;align-items:center;gap:10px}
+.src-card .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.src-card .dot.off{background:var(--line-strong)}
+.src-card p{font-size:13px;color:var(--mut);margin-top:8px;line-height:1.6}
+.src-card code{font-family:ui-monospace,'Cascadia Mono',Menlo,monospace;font-size:12px;background:var(--canvas-soft);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;flex-wrap:wrap;gap:14px;border-right:none;border-bottom:1px solid var(--line)}
+  .nav{flex-direction:row;flex-wrap:wrap}
+  .nav button{padding:7px 10px}
+  .side-h,.side-src,.side-user{display:none}
+  .panels{grid-template-columns:1fr}
+  .main{padding:18px 16px 32px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></span>
+      BuyerRadar
+    </div>
+    <nav class="nav" aria-label="Views">
+      <button data-view="leads" class="on">Leads <span class="count zero" id="navCount">0</span></button>
+      <button data-view="inventory">Inventory</button>
+      <button data-view="sources">Sources</button>
+    </nav>
+    <div class="side-src">
+      <div class="side-h">Sources</div>
+      <div class="src-row"><span class="dot"></span>Sample feed <span class="st">on</span></div>
+      <div class="src-row"><span class="dot off" id="bskyDot"></span>Bluesky <span class="st" id="bskySt">checking</span></div>
+    </div>
+    <div class="side-user" id="sideUser" hidden>
+      <span class="ava" id="userAva"></span>
+      <div>
+        <strong id="userName"></strong>
+        <small id="userCity"></small>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1 id="viewTitle">Leads</h1>
+      <span class="updated" id="updated"></span>
+      <div class="top-controls">
+        <label class="auto"><input type="checkbox" id="autoRefresh" checked> Auto refresh</label>
+        <select id="sourceSelect" aria-label="Scan source">
+          <option value="sample">Sample feed</option>
+          <option value="bluesky" id="blueskyOpt" disabled>Bluesky (not configured)</option>
+        </select>
+        <input type="text" id="queryInput" placeholder="Keywords, e.g. sneakers accra" aria-label="Scan keywords">
+        <button class="btn primary" id="scanBtn">Run scan</button>
+      </div>
+    </div>
+
+    <div class="banner error" id="connError">
+      <span>Cannot reach the server. Check that it is running, then try again.</span>
+      <button class="btn ghost" id="retryBtn" style="padding:6px 14px;font-size:12.5px;margin-left:auto">Retry</button>
+    </div>
+    <div class="banner ok" id="notice"></div>
+
+    <section id="view-leads">
+      <div class="stats" id="stats" hidden>
+        <div class="stat"><b id="stLeads">0</b><span>leads total</span></div>
+        <div class="stat"><b id="stNew">0</b><span>new</span></div>
+        <div class="stat"><b id="stApproved">0</b><span>approved</span></div>
+        <div class="stat"><b id="stPosts">0</b><span>posts scanned</span></div>
+      </div>
+      <div id="setup" hidden>
+        <div class="form">
+          <h2>Register your shop</h2>
+          <form id="setupForm">
+            <div class="field"><label for="shopName">Shop name</label><input id="shopName" required maxlength="80" placeholder="e.g. SneakerPlug GH"></div>
+            <div class="field"><label for="shopCity">City</label><input id="shopCity" required maxlength="60" placeholder="e.g. Accra"></div>
+            <div class="field"><label for="shopPhone">WhatsApp number (optional)</label><input id="shopPhone" maxlength="30" placeholder="+233 ..."></div>
+            <button class="btn primary" type="submit">Register</button>
+          </form>
+          <p class="hint">The agent matches posts against what you stock. After registering, add your products in Inventory.</p>
+        </div>
+      </div>
+      <div class="panels" id="leadPanels" hidden>
+        <div class="panel">
+          <div class="panel-head"><h2>Leads</h2><p>Buyers the agent matched to your inventory. Approve the ones worth pursuing.</p></div>
+          <div class="panel-body" id="leadsList"><div class="loading">Loading leads...</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Recently scanned</h2><p>Posts the agent processed on the last scans.</p></div>
+          <div class="panel-body" id="postsList"><div class="loading">Loading posts...</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-inventory" hidden>
+      <div class="form" style="max-width:none;margin-bottom:16px">
+        <h2>Add product</h2>
+        <form id="productForm">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div class="field" style="flex:1;min-width:180px;margin-bottom:0"><label for="pName">Name</label><input id="pName" required maxlength="100" placeholder="e.g. Nike Air Force 1"></div>
+            <div class="field" style="width:130px;margin-bottom:0"><label for="pPrice">Price</label><input id="pPrice" required maxlength="30" placeholder="GHS 450"></div>
+            <div class="field" style="flex:2;min-width:220px;margin-bottom:0"><label for="pTags">Keywords, comma separated</label><input id="pTags" placeholder="nike, sneakers, air force, af1"></div>
+            <button class="btn primary" type="submit">Add</button>
+          </div>
+        </form>
+        <p class="hint">Keywords are what the agent looks for in posts. Include the ways buyers actually spell and shorten your product.</p>
+      </div>
+      <div id="inventoryList"><div class="loading">Loading inventory...</div></div>
+    </section>
+
+    <section id="view-sources" hidden>
+      <div class="src-card">
+        <h3><span class="dot"></span>Sample feed</h3>
+        <p>A fixed set of 12 posts for development and testing. No credentials needed. Running a scan against it stores real rows, so you can try the whole flow before connecting a live platform.</p>
+      </div>
+      <div class="src-card">
+        <h3><span class="dot off" id="bskyDot2"></span>Bluesky <span class="meta" id="bskySt2"></span></h3>
+        <p id="bskyHelp">Live search across Bluesky posts using your account.</p>
+      </div>
+      <div class="src-card">
+        <h3><span class="dot off"></span>WhatsApp delivery</h3>
+        <p>Not built yet. Leads currently reach you through this dashboard. WhatsApp alerts with reply 1 to act are on the roadmap.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const state={view:'leads',auto:true,sellers:[],status:null,leads:[],posts:[],lastUpdated:null,ready:false,scanBusy:false};
+
+function esc(s){
+  const amp=String.fromCharCode(38);
+  const map={'&':amp+'amp;','<':amp+'lt;','>':amp+'gt;','"':amp+'quot;',"'":amp+'#39;'};
+  return String(s ?? '').replace(/[&<>"']/g,c=>map[c]);
+}
+
+async function api(path,opts={}){
+  const res=await fetch(path,{headers:{'Content-Type':'application/json'},...opts});
+  if(!res.ok){
+    let detail='';
+    try{const body=await res.json();detail=body.detail||'';}catch(e){}
+    throw new Error(detail||('HTTP '+res.status));
+  }
+  const ct=res.headers.get('content-type')||'';
+  return ct.includes('json')?res.json():null;
+}
+
+function timeAgo(iso){
+  if(!iso)return '';
+  const s=Math.max((Date.now()-new Date(iso))/1000,0);
+  if(s<60)return 'just now';
+  if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
+let noticeTimer=null;
+function notice(msg,kind){
+  const el=$('notice');
+  el.textContent=msg;
+  el.className='banner show '+(kind==='error'?'error':'ok');
+  clearTimeout(noticeTimer);
+  noticeTimer=setTimeout(()=>{el.className='banner ok';},5000);
+}
+
+async function refresh(){
+  try{
+    const [status,sellers,leads,posts]=await Promise.all([
+      api('/api/status'),
+      api('/api/sellers'),
+      api('/api/leads'),
+      api('/api/posts?limit=12')
+    ]);
+    Object.assign(state,{status,sellers,leads,posts,lastUpdated:new Date(),ready:true});
+    $('connError').classList.remove('show');
+  }catch(e){
+    $('connError').classList.add('show');
+  }
+  render();
+}
+
+async function runScan(){
+  if(state.scanBusy)return;
+  state.scanBusy=true;renderTop();
+  try{
+    const source=$('sourceSelect').value;
+    const query=$('queryInput').value.trim()||'sneakers accra';
+    const s=await api('/api/scan?source='+encodeURIComponent(source)+'&query='+encodeURIComponent(query),{method:'POST'});
+    notice('Scan finished: '+s.scanned+' posts scanned, '+s.leads+' new leads, '+s.skipped+' skipped, '+s.duplicates+' already seen.');
+    await refresh();
+  }catch(e){
+    notice('Scan failed: '+e.message,'error');
+  }
+  state.scanBusy=false;renderTop();
+}
+
+async function setLead(id,status){
+  const action=status==='approved'?'approve':'dismiss';
+  try{
+    await api('/api/leads/'+id+'/'+action,{method:'POST'});
+    const lead=state.leads.find(l=>l.id===id);
+    if(lead){
+      if(lead.status==='new'&&state.status){
+        state.status.new_leads=Math.max(state.status.new_leads-1,0);
+        if(status==='approved')state.status.approved_leads=(state.status.approved_leads||0)+1;
+      }
+      lead.status=status;
+    }
+    render();
+    notice(status==='approved'?'Lead approved.':'Lead dismissed.');
+  }catch(e){
+    notice('Could not update the lead: '+e.message,'error');
+  }
+}
+
+function render(){
+  renderSide();renderTop();renderView();
+}
+
+function renderSide(){
+  const n=state.status?state.status.new_leads:0;
+  const cnt=$('navCount');
+  cnt.textContent=n;
+  cnt.className='count'+(n===0?' zero':'');
+  const bskyOn=!!(state.status&&state.status.bluesky_enabled);
+  $('bskyDot').className='dot'+(bskyOn?'':' off');
+  $('bskySt').textContent=bskyOn?'live':'off';
+  const seller=state.sellers[0];
+  $('sideUser').hidden=!seller;
+  if(seller){
+    $('userAva').textContent=seller.name.slice(0,2).toUpperCase();
+    $('userName').textContent=seller.name;
+    $('userCity').textContent=seller.city;
+  }
+}
+
+function renderTop(){
+  const titles={leads:'Leads',inventory:'Inventory',sources:'Sources'};
+  $('viewTitle').textContent=titles[state.view];
+  $('updated').textContent=state.lastUpdated?('Updated '+state.lastUpdated.toLocaleTimeString('en-GB')):'';
+  const bskyOn=!!(state.status&&state.status.bluesky_enabled);
+  const opt=$('blueskyOpt');
+  opt.disabled=!bskyOn;
+  opt.textContent=bskyOn?'Bluesky (live)':'Bluesky (not configured)';
+  const btn=$('scanBtn');
+  btn.textContent=state.scanBusy?'Scanning...':'Run scan';
+  btn.disabled=state.scanBusy;
+}
+
+function renderView(){
+  $('view-leads').hidden=state.view!=='leads';
+  $('view-inventory').hidden=state.view!=='inventory';
+  $('view-sources').hidden=state.view!=='sources';
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.view===state.view));
+  if(state.view==='leads')renderLeads();
+  if(state.view==='inventory')renderInventory();
+  if(state.view==='sources')renderSources();
+}
+
+function renderLeads(){
+  const hasShop=state.sellers.length>0;
+  $('setup').hidden=hasShop;
+  $('leadPanels').hidden=!hasShop;
+  $('stats').hidden=!hasShop;
+  if(!hasShop)return;
+  const st=state.status||{};
+  $('stLeads').textContent=st.leads??0;
+  $('stNew').textContent=st.new_leads??0;
+  $('stApproved').textContent=st.approved_leads??0;
+  $('stPosts').textContent=st.posts_scanned??0;
+
+  const leadsEl=$('leadsList');
+  if(!state.ready){leadsEl.innerHTML='<div class="loading">Loading leads...</div>';}
+  else if(state.leads.length===0){
+    leadsEl.innerHTML='<div class="empty">No leads yet. Run a scan and the agent will look for buyers who need what you stock.</div>';
+  }else{
+    leadsEl.innerHTML=state.leads.map(leadCard).join('');
+  }
+
+  const postsEl=$('postsList');
+  if(!state.ready){postsEl.innerHTML='<div class="loading">Loading posts...</div>';}
+  else if(state.posts.length===0){
+    postsEl.innerHTML='<div class="empty">Nothing scanned yet. Run a scan to see what the agent finds.</div>';
+  }else{
+    postsEl.innerHTML=state.posts.map(postCard).join('');
+  }
+}
+
+function leadCard(l){
+  const pct=Math.round(l.confidence*100);
+  const hot=pct>=85;
+  const chips=l.matched.map(m=>'<span class="chip">'+esc(m.name)+(m.price?' · '+esc(m.price):'')+'</span>').join('');
+  let footer;
+  if(l.status==='new'){
+    footer='<div class="actions"><button class="btn primary" data-approve="'+l.id+'">Approve</button><button class="btn ghost" data-dismiss="'+l.id+'">Dismiss</button></div>';
+  }else{
+    const approved=l.status==='approved';
+    footer='<span class="tag '+(approved?'approved':'dismissed')+'">'+(approved?'Approved':'Dismissed')+'</span>';
+  }
+  return '<article class="lead-card'+(l.status==='dismissed'?' dim':'')+'">'
+    +'<div class="lead-head"><div><strong>'+esc(l.author)+'</strong>'
+    +'<span class="meta">'+esc(l.city||'location unknown')+' · '+esc(l.source)+' · '+timeAgo(l.posted_at)+'</span></div>'
+    +'<span class="badge '+(hot?'hot':'warm')+'">'+(hot?'HOT':'WARM')+' · '+pct+'%</span></div>'
+    +'<div class="conf"><i style="width:'+pct+'%"></i></div>'
+    +'<blockquote class="quote">'+esc(l.text)+'</blockquote>'
+    +'<div class="chips">'+chips+'</div>'
+    +'<div class="draft"><span>Draft reply</span><p>'+esc(l.draft)+'</p><small>Delivery via WhatsApp is not built yet.</small></div>'
+    +footer+'</article>';
+}
+
+function postCard(p){
+  const badge=p.verdict==='buying'?'<span class="badge coral">BUYING INTENT</span>'
+    :p.verdict==='selling'?'<span class="badge amber">SELLER POST</span>'
+    :'<span class="badge gray">NOISE</span>';
+  let extra='';
+  if(p.verdict==='buying'){
+    extra=p.lead_id?'<span class="note good">lead created</span>':'<span class="note">no inventory match</span>';
+  }
+  return '<article class="post-card'+(p.verdict!=='buying'?' dim':'')+'">'
+    +'<div class="post-head"><strong>'+esc(p.author)+'</strong> '
+    +'<span class="meta">'+esc(p.city||'location unknown')+' · '+esc(p.source)+' · '+timeAgo(p.posted_at)+'</span></div>'
+    +'<p class="post-text">"'+esc(p.text)+'"</p>'
+    +'<div class="verdict">'+badge+extra+'</div></article>';
+}
+
+function renderInventory(){
+  const listEl=$('inventoryList');
+  const seller=state.sellers[0];
+  $('productForm').hidden=!seller;
+  if(!seller){
+    listEl.innerHTML='<div class="empty">Register your shop first, then add the products you sell.</div>';
+    return;
+  }
+  if(!seller.inventory.length){
+    listEl.innerHTML='<div class="empty">No products yet. Add what you sell so the agent knows what to watch for.</div>';
+    return;
+  }
+  listEl.innerHTML=seller.inventory.map(p=>
+    '<div class="product-row"><strong>'+esc(p.name)+'</strong><span class="price">'+esc(p.price)+'</span>'
+    +'<span style="display:flex;gap:5px;flex-wrap:wrap">'+p.tags.map(t=>'<span class="tagchip">'+esc(t)+'</span>').join('')+'</span></div>'
+  ).join('');
+}
+
+function renderSources(){
+  const bskyOn=!!(state.status&&state.status.bluesky_enabled);
+  $('bskyDot2').className='dot'+(bskyOn?'':' off');
+  $('bskySt2').textContent=bskyOn?'configured':'not configured';
+  $('bskyHelp').innerHTML=bskyOn
+    ?'Live search across Bluesky posts using your account. Pick Bluesky in the top bar and run a scan.'
+    :'To enable: copy <code>config.example.toml</code> to <code>config.toml</code>, add your Bluesky identifier and app password, then restart the server. App passwords are created in Bluesky settings.';
+}
+
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{state.view=btn.dataset.view;renderView();});
+});
+
+$('autoRefresh').addEventListener('change',e=>{state.auto=e.target.checked;});
+$('scanBtn').addEventListener('click',runScan);
+$('retryBtn').addEventListener('click',refresh);
+
+$('leadsList').addEventListener('click',e=>{
+  const approve=e.target.closest('[data-approve]');
+  const dismiss=e.target.closest('[data-dismiss]');
+  if(approve)setLead(Number(approve.dataset.approve),'approved');
+  if(dismiss)setLead(Number(dismiss.dataset.dismiss),'dismissed');
+});
+
+$('setupForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  try{
+    await api('/api/sellers',{method:'POST',body:JSON.stringify({
+      name:$('shopName').value.trim(),
+      city:$('shopCity').value.trim(),
+      whatsapp:$('shopPhone').value.trim()
+    })});
+    notice('Shop registered. Add your products in Inventory.');
+    await refresh();
+  }catch(err){notice('Could not register: '+err.message,'error');}
+});
+
+$('productForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const seller=state.sellers[0];
+  if(!seller)return;
+  const tags=$('pTags').value.split(',').map(t=>t.trim().toLowerCase()).filter(Boolean);
+  try{
+    await api('/api/sellers/'+seller.id+'/products',{method:'POST',body:JSON.stringify({
+      name:$('pName').value.trim(),
+      price:$('pPrice').value.trim(),
+      tags
+    })});
+    $('pName').value='';$('pPrice').value='';$('pTags').value='';
+    notice('Product added.');
+    await refresh();
+  }catch(err){notice('Could not add product: '+err.message,'error');}
+});
+
+setInterval(()=>{
+  if(state.auto&&!document.hidden&&!state.scanBusy)refresh();
+},8000);
+
+render();
+refresh();
+</script>
+</body>
+</html>
